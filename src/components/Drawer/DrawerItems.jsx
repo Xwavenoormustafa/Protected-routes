@@ -4,13 +4,13 @@ import { useSelector, useDispatch } from "react-redux";
 import { Link } from "react-router-dom";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import AddIcon from "@mui/icons-material/Add";
-import { addtocart, removeFromCart } from "../Addtocart/cart"; // Assuming these are the actions for adding/removing items to the cart
+import { addtocart, removeFromCart } from "../Addtocart/cart"; 
 
 const DrawerItems = (props) => {
   const { openItems, toggleOpenItems } = props;
   const dispatch = useDispatch();
 
-  // Accessing the cart items from Redux store
+  
   const { cartitems } = useSelector((state) => state.cart);
 
   return (
