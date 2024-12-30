@@ -1,83 +1,117 @@
-import { Autocomplete, Box, Button, Card, CircularProgress, Grid, Rating, TextField, Tooltip, Typography } from '@mui/material'
-// import { Card, Rating } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import React, { useEffect, useState } from 'react'
-import axios from 'axios'
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import { Swiper, SwiperSlide } from 'swiper/react';
-import FavoriteIcon from '@mui/icons-material/Favorite';
-import { addToCart } from '../../store/slices/cart/cartSlice';
+import {
+  Autocomplete,
+  Box,
+  Button,
+  Card,
+  Grid,
+  Rating,
+  TextField,
+  Tooltip,
+  Typography,
+} from "@mui/material";
+import React, { useEffect, useState } from "react";
+import AddIcon from "@mui/icons-material/Add";
+import axios from "axios";
+import { Swiper, SwiperSlide } from "swiper/react";
 
+import "swiper/css";
+import "swiper/css/pagination";
+import "swiper/css/navigation";
 
-import 'swiper/css';
-import 'swiper/css/pagination';
-import 'swiper/css/navigation';
+import { Autoplay, Pagination, Navigation } from "swiper/modules";
+import CircularProgress from "@mui/material/CircularProgress";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import { Link } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { addToCart } from "../../store/slices/cart/cartSlice";
+import PaginationMui from "@mui/material/Pagination";
 
-
-
-import { Autoplay, Pagination, Navigation } from 'swiper/modules';
-import { Link } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
-
-const ProdectsCard = () => {
+const ProductsCard = (props) => {
   const [updatedProductsArr, setUpdatedProductsArr] = useState([]);
   const [products, setProducts] = useState([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [categoryArr, setCategoryArr] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const dispatch = useDispatch ()
+  const itemsParPage = 10;
+
+  const totalPages = Math.ceil(updatedProductsArr.length / itemsParPage);
+
+  console.log(totalPages, "totalPages");
+
+  const dispatch = useDispatch();
+
 
   const filterProducts = (categoryProduct) => {
-    const filterByCategory = categoryProduct
-      ? products.filter((item) => item.category === categoryProduct.value)
-      : products;
+    const filterByCategory = products.filter(
+      (item) => item.category === categoryProduct.value
+    );
+
     setUpdatedProductsArr(filterByCategory);
+    console.log(filterByCategory, "filterByCategory");
   };
-  
+
+  const resetCategoryFilter = () => {
+    setUpdatedProductsArr(products);
+  };
 
   useEffect(() => {
-    const productsData = axios.get('https://fakestoreapi.com/products').then((data) => {
-      console.log(data, 'apidata');
+    const fetchProducts = async () => {
+      try {
+        const { data } = await axios.get("https://fakestoreapi.com/products");
+        const categoryArr = data.map((item) => ({
+          label: item.category,
+          value: item.category,
+        }));
 
-      const categoryArr = data?.data?.map((item) => {
-        return {
-          label: item?.category,
-          value: item?.category,
-        };
-      })
-      const uniqueData = categoryArr.filter((item, index, self) => index === self.findIndex((t) => t.value === item.value));
-      setCategoryArr(uniqueData);
-      setProducts(data?.data);
-      setUpdatedProductsArr(data?.data);
-      setIsLoadingData(false);
-
-    });
-
-
-  }, [])
+        const uniqueData = categoryArr.filter(
+          (item, index, self) =>
+            index === self.findIndex((t) => t.value === item.value)
+        );
+        setCategoryArr(uniqueData);
+        setProducts(data);
+        setUpdatedProductsArr(data);
+        setIsLoadingData(false);
+      } catch (error) {
+        console.error("Error fetching products:", error);
+      }
+    };
+    fetchProducts();
+  }, []);
   return (
     <>
-      <Autocomplete className='mb-5'
+      <Autocomplete
         disablePortal
         options={categoryArr}
-        onChange={(e, newValue) => {
-          filterProducts(newValue)
-        }}
         sx={{ width: 300 }}
+        onChange={(e, newValue) => {
+          if (newValue) {
+            filterProducts(newValue);
+          } else {
+            resetCategoryFilter();
+          }
+        }}
         renderInput={(params) => <TextField {...params} label="Category" />}
       />
-      <Grid container spacing={3} >
-        {
-          isLoadingData ? <Box className='mt-2'><CircularProgress size={40} /></Box> :
-            updatedProductsArr?.map((product) => (
-
-              <Grid Item sm={3} className='p-3'>
-                <Card key={product.id} >
+      <Grid container spacing={3}>
+        {isLoadingData ? (
+          <Box className="text-center w-100 mt-4">
+            <CircularProgress size={40} />
+          </Box>
+        ) : (
+          updatedProductsArr
+            ?.slice(
+              (currentPage - 1) * itemsParPage,
+              currentPage * itemsParPage
+            )
+            .map((product, index) => (
+              <Grid container item xs={12} sm={6} md={4} lg={3} key={index}>
+                <Card className="p-3 rounded-3 w-100 shadow p-3 mb-5 bg-body rounded text-center">
                   <Swiper
-                    spaceBetween={30}
+                    spaceBetween={20}
                     centeredSlides={true}
                     autoplay={{
-                      delay: 4500,
+                      delay: 2000,
                       disableOnInteraction: false,
                     }}
                     pagination={{
@@ -87,41 +121,90 @@ const ProdectsCard = () => {
                     modules={[Autoplay, Pagination, Navigation]}
                     className="mySwiper"
                   >
-
-
-                    <SwiperSlide className='text-center'>  <img width={'300px'} height={'400px'} src={product?.image} alt='' /></SwiperSlide>
-                    <SwiperSlide className='text-center'>  <img width={'300px'} height={'400px'} src={product?.image} alt='' /></SwiperSlide>
-
+                    <SwiperSlide>
+                      <img
+                        className="card-image img-fluid"
+                        src={product?.image}
+                        alt="Product img"
+                        style={{
+                          maxHeight: "210px",
+                          minHeight: "210px",
+                          marginTop: "20px",
+                        }}
+                      />
+                    </SwiperSlide>
                   </Swiper>
-                  <Box className='p-3'>
-                    <Typography variant='body1'>{product?.category?.name}</Typography>
-                    <Tooltip title={product?.title} placement='top'>
-                      <Typography variant="h5" className="mt-2">{product?.title?.length > 25 ? `${product?.title.slice(0, 25)}...` : product?.title}</Typography>
+                  <Box className="mt-3" sx={{ textAlign: "center" }}>
+                    <Typography
+                      className="text-primary"
+                      sx={{
+                        textTransform: "uppercase",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {product?.category}
+                    </Typography>
+                    <Tooltip title={product?.title} placement="top">
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          fontWeight: "bold",
+                          color: "#333",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {product?.title?.length >= 30
+                          ? `${product?.title.slice(0, 30)}...`
+                          : product?.title}
+                      </Typography>
                     </Tooltip>
-                    <Rating name="read-only" value={product.rating.rate} readOnly />
-                    <Box className='d-flex justify-content-between align-items-center'>
-                      <Typography variant="h6">${product.price}</Typography>
+                    <Rating
+                      name="read-only"
+                      value={Math.round(product?.rating?.rate)}
+                      readOnly
+                    />
+                  </Box>
+                  <Box className="mt-2 d-flex justify-content-between align-items-center">
+                    <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+                      ${product?.price}
+                    </Typography>
+                    <Box className="d-flex">
                       <Box>
-                        <Tooltip title="Favorite" placement='top'>
-                          <FavoriteIcon className='text-primary' sx={{cursor:'pointer'}}/>
-                        </Tooltip>
-                        <Tooltip title='View Details' placement='top'>
+                        <Tooltip title="View Product" placement="top">
                           <Link to={`/product-details/${product?.id}`}>
-                            <VisibilityIcon className='mx-3 text-primary' /></Link>
+                            <Button size="small">
+                              <VisibilityIcon />
+                            </Button>
+                          </Link>
                         </Tooltip>
-                        <Button className="my-3" variant="contained" onClick={()=>dispatch(addToCart(product))}><AddIcon /> Add
+                      </Box>
+                      <Box>
+                        <Button
+                          size="small"
+                          variant="contained"
+                          onClick={() => dispatch(addToCart(product))}
+                        >
+                          <AddIcon /> ADD
                         </Button>
                       </Box>
                     </Box>
                   </Box>
-
                 </Card>
               </Grid>
-
-            ))}
+            ))
+        )}
       </Grid>
+      <Box className="d-flex justify-content-center my-2">
+        <PaginationMui
+          onChange={(e, value) => {
+            setCurrentPage(value);
+          }}
+          count={totalPages}
+          color="primary"
+        />
+      </Box>
     </>
-  )
-}
+  );
+};
 
-export default ProdectsCard;
+export default ProductsCard;
