@@ -1,173 +1,127 @@
-import React, { useEffect, useState } from "react";
-import {
-  Autocomplete,
-  Box,
-  Button,
-  Card,
-  CircularProgress,
-  Grid,
-  Rating,
-  TextField,
-  Tooltip,
-  Typography,
-} from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
-import VisibilityIcon from "@mui/icons-material/Visibility";
-import axios from "axios";
-import { Link } from "react-router-dom";
-import { useDispatch } from "react-redux";
-import { addtocart } from "../Addtocart/cart";
-import DrawerItems from "../Drawer/DrawerItems"; // Import the DrawerItems component
+import { Autocomplete, Box, Button, Card, CircularProgress, Grid, Rating, TextField, Tooltip, Typography } from '@mui/material'
+// import { Card, Rating } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import React, { useEffect, useState } from 'react'
+import axios from 'axios'
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import FavoriteIcon from '@mui/icons-material/Favorite';
+import { addToCart } from '../../store/slices/cart/cartSlice';
+
+
+import 'swiper/css';
+import 'swiper/css/pagination';
+import 'swiper/css/navigation';
+
+
+
+import { Autoplay, Pagination, Navigation } from 'swiper/modules';
+import { Link } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 
 const ProdectsCard = () => {
+  const [updatedProductsArr, setUpdatedProductsArr] = useState([]);
   const [products, setProducts] = useState([]);
-  const [filteredProducts, setFilteredProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [categoryArr, setCategoryArr] = useState([]);
 
-  const dispatch = useDispatch()
+  const dispatch = useDispatch ()
 
-
+  const filterProducts = (categoryProduct) => {
+    const filterByCategory = categoryProduct
+      ? products.filter((item) => item.category === categoryProduct.value)
+      : products;
+    setUpdatedProductsArr(filterByCategory);
+  };
+  
 
   useEffect(() => {
-    axios.get("https://fakestoreapi.com/products").then((response) => {
-      const productData = response.data;
+    const productsData = axios.get('https://fakestoreapi.com/products').then((data) => {
+      console.log(data, 'apidata');
 
-      const uniqueCategories = [
-        ...new Map(
-          productData.map((item) => [
-            item.category,
-            { label: item.category, value: item.category },
-          ])
-        ).values(),
-      ];
+      const categoryArr = data?.data?.map((item) => {
+        return {
+          label: item?.category,
+          value: item?.category,
+        };
+      })
+      const uniqueData = categoryArr.filter((item, index, self) => index === self.findIndex((t) => t.value === item.value));
+      setCategoryArr(uniqueData);
+      setProducts(data?.data);
+      setUpdatedProductsArr(data?.data);
+      setIsLoadingData(false);
 
-      setCategories(uniqueCategories);
-      setProducts(productData);
-      setFilteredProducts(productData);
-      setIsLoading(false);
     });
-  }, []);
 
-  const filterProductsByCategory = (category) => {
-    if (!category) {
-      setFilteredProducts(products);
-    } else {
-      const filtered = products.filter(
-        (product) => product.category === category.value
-      );
-      setFilteredProducts(filtered);
-    }
-  };
 
+  }, [])
   return (
     <>
-      <Box className="mt-4 pt-5 ms-4">
-        <Autocomplete
-          disablePortal
-          options={categories}
-          sx={{ width: 300 }}
-          onChange={(e, newValue) => filterProductsByCategory(newValue)}
-          renderInput={(params) => (
-            <TextField {...params} label="Filter by Category" />
-          )}
-        />
-      </Box>
-      <Grid container spacing={3} className="mt-5 pt-5 ms-4">
-        {isLoading ? (
-          <Box className="my-5 w-100 text-center">
-            <CircularProgress size="3rem" />
-          </Box>
-        ) : (
-          filteredProducts.map((product) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={product.id}>
-              <Card
-                className="text-center px-3 m-3"
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: "16px",
-                  boxShadow: "0 4px 10px rgba(0, 0, 0, 0.2)",
-                }}
-              >
-                <img
-                  src={product.image}
-                  alt={product.title}
-                  style={{
-                    width: "100%",
-                    height: "170px",
-                    objectFit: "cover",
-                    marginBottom: "8px",
-                  }}
-                />
-                <Box
-                  className="text-start"
-                  sx={{
-                    width: "100%",
-                    textAlign: "start",
-                  }}
-                >
-                  <Typography
-                    variant="h6"
-                    className="mt-2 text-start"
-                    sx={{
-                      fontSize: "1rem",
-                      fontWeight: "bold",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
+      <Autocomplete className='mb-5'
+        disablePortal
+        options={categoryArr}
+        onChange={(e, newValue) => {
+          filterProducts(newValue)
+        }}
+        sx={{ width: 300 }}
+        renderInput={(params) => <TextField {...params} label="Category" />}
+      />
+      <Grid container spacing={3} >
+        {
+          isLoadingData ? <Box className='mt-2'><CircularProgress size={40} /></Box> :
+            updatedProductsArr?.map((product) => (
+
+              <Grid Item sm={3} className='p-3'>
+                <Card key={product.id} >
+                  <Swiper
+                    spaceBetween={30}
+                    centeredSlides={true}
+                    autoplay={{
+                      delay: 4500,
+                      disableOnInteraction: false,
                     }}
-                  >
-                    {product.title}
-                  </Typography>
-                  <Rating
-                    name="read-only"
-                    value={Math.round(product.rating?.rate) || 0}
-                    readOnly
-                  />
-                  <Typography
-                    variant="h6"
-                    sx={{ fontSize: "1rem", marginTop: "5px" }}
-                  >
-                    ${product.price}
-                  </Typography>
-                  <Box
-                    sx={{
-                      marginTop: "8px",
-                      display: "flex",
-                      justifyContent: "space-between",
+                    pagination={{
+                      clickable: true,
                     }}
+                    navigation={false}
+                    modules={[Autoplay, Pagination, Navigation]}
+                    className="mySwiper"
                   >
-                    <Tooltip title="View details">
-                      <Link to={`/productdetails/${product.id}`}>
-                        <Button>
-                          <VisibilityIcon />
-                        </Button>
-                      </Link>
+
+
+                    <SwiperSlide className='text-center'>  <img width={'300px'} height={'400px'} src={product?.image} alt='' /></SwiperSlide>
+                    <SwiperSlide className='text-center'>  <img width={'300px'} height={'400px'} src={product?.image} alt='' /></SwiperSlide>
+
+                  </Swiper>
+                  <Box className='p-3'>
+                    <Typography variant='body1'>{product?.category?.name}</Typography>
+                    <Tooltip title={product?.title} placement='top'>
+                      <Typography variant="h5" className="mt-2">{product?.title?.length > 25 ? `${product?.title.slice(0, 25)}...` : product?.title}</Typography>
                     </Tooltip>
-
-                    <Button
-                      className="my-3"
-                      variant="contained"
-                      sx={{ marginLeft: "8px" }}
-                     onClick={()=>dispatch(addtocart(product)) }
-                    >
-                      <AddIcon /> Add
-                    </Button>
+                    <Rating name="read-only" value={product.rating.rate} readOnly />
+                    <Box className='d-flex justify-content-between align-items-center'>
+                      <Typography variant="h6">${product.price}</Typography>
+                      <Box>
+                        <Tooltip title="Favorite" placement='top'>
+                          <FavoriteIcon className='text-primary' sx={{cursor:'pointer'}}/>
+                        </Tooltip>
+                        <Tooltip title='View Details' placement='top'>
+                          <Link to={`/product-details/${product?.id}`}>
+                            <VisibilityIcon className='mx-3 text-primary' /></Link>
+                        </Tooltip>
+                        <Button className="my-3" variant="contained" onClick={()=>dispatch(addToCart(product))}><AddIcon /> Add
+                        </Button>
+                      </Box>
+                    </Box>
                   </Box>
-                </Box>
-              </Card>
-            </Grid>
-          ))
-        )}
-      </Grid>
 
-      
-     
+                </Card>
+              </Grid>
+
+            ))}
+      </Grid>
     </>
-  );
-};
+  )
+}
 
 export default ProdectsCard;
